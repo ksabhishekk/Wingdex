@@ -1,0 +1,33 @@
+wingdex_rnative/
+├── assets/                    (keep as is)
+├── node_modules/              (keep as is)
+├── .gitignore                 (keep as is)
+├── index.js                   (update — 2 lines)
+├── App.js                     (update — router entry)
+├── app.json                   (update — add scheme + plugins)
+├── package.json               (update — add dependencies)
+│
+├── theme/
+│   └── index.js
+│
+├── data/
+│   └── birds.js
+│
+├── components/
+│   ├── RarityTag.jsx
+│   ├── BirdSilhouette.jsx
+│   ├── DexButton.jsx
+│   └── BottomNav.jsx
+│
+└── app/
+    ├── _layout.jsx
+    ├── index.jsx
+    ├── login.jsx
+    ├── home.jsx
+    ├── camera.jsx
+    ├── ai-result.jsx
+    ├── library.jsx
+    ├── bird-detail.jsx
+    ├── heatmap.jsx
+    ├── profile.jsx
+    └── settings.jsx
