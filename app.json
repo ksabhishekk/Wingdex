@@ -2,19 +2,21 @@
   "expo": {
     "name": "wingdex_rnative",
     "slug": "wingdex_rnative",
+    "scheme": "wingdex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D1A0D"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.wingdex.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,7 +29,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "WingDex needs camera access to identify bird species."
+        }
+      ]
     ]
   }
 }
