@@ -51,30 +51,41 @@ const uploadSighting = async (imageUri) => {
 
     const formData = new FormData();
 
-    formData.append("species", "Unknown");
     formData.append("userId", "1");
 
-    // -----------------------------
-    // 🔥 FIX: Convert blob URL → real file
-    // -----------------------------
     const response = await fetch(imageUri);
     const blob = await response.blob();
 
     formData.append("image", blob, "photo.jpg");
 
-    // -----------------------------
-    // SEND TO BACKEND
-    // -----------------------------
-    const res = await axios.post(`${BASE_URL}/sightings`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+const res = await axios.post(`${BASE_URL}/sightings`, formData, {
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+});
+
+console.log("AI + Upload result:", res.data);
+
+router.push({
+  pathname: "/ai-result",
+  params: {
+    id: res.data.id,
+    species: res.data.species,
+    confidence: res.data.confidence,
+    imageUrl: res.data.imageUrl,
+  },
+});
 
     console.log("Uploaded successfully:", res.data);
 
-    router.push("/ai-result");
+    router.push({
+      pathname: "/ai-result",
+      params: {
+        id: res.data.species,
+        confidence: res.data.confidence,
+        imageUrl: res.data.imageUrl,
+      },
+    });
 
   } catch (err) {
     console.log("UPLOAD ERROR:", err.response?.data || err.message);

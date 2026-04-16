@@ -25,4 +25,6 @@ model Sighting {
 
   userId Int
   user   User @relation(fields: [userId], references: [id])
+
+  confidence Float?   // OPTIONAL (for AI later)
 }
