@@ -7,6 +7,9 @@ import Svg, { Path } from 'react-native-svg';
 import DexButton from '../components/DexButton';
 import { Colors, Fonts, Radii, Spacing } from '../theme';
 
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 export default function LoginScreen() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
@@ -14,8 +17,40 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
 
-  const handleAuth = () => {
-    router.replace('/home');
+  const BASE_URL = "http://192.168.1.17:5000"; 
+
+  const handleAuth = async () => {
+    try {
+      if (isLogin) {
+        // LOGIN
+        const res = await axios.post(`${BASE_URL}/auth/login`, {
+          email,
+          password,
+        });
+
+        const token = res.data.token;
+
+        await AsyncStorage.setItem("token", token);
+
+        console.log("Logged in:", token);
+
+        router.replace('/home');
+
+      } else {
+        // SIGNUP
+        await axios.post(`${BASE_URL}/auth/signup`, {
+          email,
+          password,
+        });
+
+        console.log("User created");
+
+        setIsLogin(true);
+      }
+
+    } catch (err) {
+      console.log(err.response?.data || err.message);
+    }
   };
 
   return (
