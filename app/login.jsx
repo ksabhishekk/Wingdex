@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import DexButton from '../components/DexButton';
 import { Colors, Fonts, Radii, Spacing } from '../theme';
 
@@ -16,10 +17,13 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
 
-  const BASE_URL = "http://192.168.1.17:5000"; 
+  const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
 
   const handleAuth = async () => {
+    setAuthError('');
     try {
       if (isLogin) {
         // LOGIN
@@ -29,27 +33,42 @@ export default function LoginScreen() {
         });
 
         const token = res.data.token;
+        const fetchedName = res.data.user.name || res.data.user.email.split('@')[0];
 
         await AsyncStorage.setItem("token", token);
-
-        console.log("Logged in:", token);
+        await AsyncStorage.setItem("username", fetchedName);
 
         router.replace('/home');
 
       } else {
+        // SIGNUP VALIDATION
+        if (!email || !password || !username) {
+          return setAuthError("All fields are required.");
+        }
+        if (password.length < 8) {
+           return setAuthError("Password must be at least 8 characters long.");
+        }
+        if (!/[A-Z]/.test(password)) {
+           return setAuthError("Password must contain at least one uppercase letter.");
+        }
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+           return setAuthError("Password must contain at least one special character.");
+        }
+
         // SIGNUP
         await axios.post(`${BASE_URL}/auth/signup`, {
           email,
           password,
+          name: username
         });
 
-        console.log("User created");
-
         setIsLogin(true);
+        setAuthError("Account created! Please sign in.");
       }
 
     } catch (err) {
       console.log(err.response?.data || err.message);
+      setAuthError(err.response?.data?.error || "Connection error. Please try again.");
     }
   };
 
@@ -94,15 +113,24 @@ export default function LoginScreen() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>PASSWORD</Text>
-                <TextInput 
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={Colors.dimGreen}
-                  secureTextEntry
-                />
+                <View style={styles.passwordContainer}>
+                  <TextInput 
+                    style={[styles.input, { flex: 1, borderWidth: 0 }]}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor={Colors.dimGreen}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                    <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={Colors.sage} />
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {!!authError && (
+                <Text style={styles.errorText}>{authError}</Text>
+              )}
 
               <DexButton 
                 label={isLogin ? 'SIGN IN' : 'CREATE ACCOUNT'} 
@@ -188,6 +216,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingVertical: 12
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26,46,26,0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(90,120,60,0.3)',
+    borderRadius: Radii.sm,
+  },
+  eyeBtn: {
+    paddingHorizontal: Spacing.md
+  },
+  errorText: {
+    fontFamily: Fonts.bodyMedium,
+    color: Colors.dexRed,
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+    marginTop: -8
   },
   dividerContainer: {
     flexDirection: 'row',

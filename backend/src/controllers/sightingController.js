@@ -1,25 +1,43 @@
 const prisma = require("../lib/prisma");
 const { identifyBird } = require("../services/aiService");
 
-// CREATE SIGHTING
-exports.createSighting = async (req, res) => {
+// ANALYZE IMAGE (Upload file & run AI without saving to WingDex)
+exports.analyzeImage = async (req, res) => {
   try {
-    const { userId } = req.body;
-
     if (!req.file) {
       return res.status(400).json({ error: "No image uploaded" });
     }
 
     const imagePath = req.file.path;
-
     const aiResult = await identifyBird(imagePath);
-
     const imageUrl = `/uploads/${req.file.filename}`;
+
+    return res.json({
+      species: aiResult.species,
+      imageUrl,
+      confidence: aiResult.confidence,
+    });
+  } catch (err) {
+    console.log("ANALYZE ERROR:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// CREATE SIGHTING (Save confirmed sighting to DB)
+exports.createSighting = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { species, imageUrl, confidence } = req.body;
+
+    if (!species || !imageUrl) {
+      return res.status(400).json({ error: "Missing sighting metadata" });
+    }
 
     const sighting = await prisma.sighting.create({
       data: {
-        species: aiResult.species,
+        species,
         imageUrl,
+        confidence: parseFloat(confidence) || 0,
         userId: parseInt(userId),
       },
     });
@@ -29,14 +47,7 @@ exports.createSighting = async (req, res) => {
       data: { xp: { increment: 10 } },
     });
 
-    return res.json({
-      id: sighting.id,
-      species: sighting.species,
-      imageUrl: sighting.imageUrl,
-      confidence: aiResult.confidence,
-      userId: sighting.userId,
-      timestamp: sighting.timestamp,
-    });
+    return res.json(sighting);
 
   } catch (err) {
     console.log("CREATE ERROR:", err);
@@ -48,7 +59,7 @@ exports.createSighting = async (req, res) => {
 // GET WINGDEX (THIS IS YOUR FUNCTION)
 exports.getSightings = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.userId;
 
     const sightings = await prisma.sighting.findMany({
       where: { userId: parseInt(userId) },
@@ -66,6 +77,32 @@ exports.getSightings = async (req, res) => {
 
   } catch (err) {
     console.log("GET ERROR:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// DELETE SIGHTING
+exports.deleteSighting = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const sightingId = parseInt(req.params.id);
+
+    // Verify ownership
+    const existing = await prisma.sighting.findUnique({
+      where: { id: sightingId }
+    });
+
+    if (!existing || existing.userId !== parseInt(userId)) {
+      return res.status(403).json({ error: "Unauthorized or not found" });
+    }
+
+    await prisma.sighting.delete({
+      where: { id: sightingId }
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.log("DELETE ERROR:", err);
     return res.status(500).json({ error: "Server error" });
   }
 };

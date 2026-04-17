@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import Svg, { Circle, Ellipse } from 'react-native-svg';
 import DexButton from '../components/DexButton';
 import BirdSilhouette from '../components/BirdSilhouette';
@@ -13,16 +15,54 @@ import { Colors, Fonts, Radii, Spacing } from '../theme';
 export default function ProfileScreen() {
   const router = useRouter();
   
-  const commonCount = BIRDS.filter(b => b.rarity === 'common').length;
-  const uncommonCount = BIRDS.filter(b => b.rarity === 'uncommon').length;
-  const rareCount = BIRDS.filter(b => b.rarity === 'rare').length;
+  const [sightings, setSightings] = useState([]);
+  const [username, setUsername] = useState('TRAINER_07');
+  const [loading, setLoading] = useState(true);
+
+  const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        try {
+          const cachedName = await AsyncStorage.getItem("username");
+          if (cachedName) setUsername(cachedName);
+
+          const token = await AsyncStorage.getItem("token");
+          if (!token) return;
+
+          const res = await axios.get(`${BASE_URL}/sightings`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setSightings(res.data);
+        } catch (err) {
+          console.log("PROFILE ERROR:", err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadProfile();
+    }, [])
+  );
   
-  const recentFinds = BIRDS.slice(0, 3);
+  const getRarity = (speciesName) => {
+    if (!speciesName) return 'common';
+    const mockBird = BIRDS.find(b => b.name.toLowerCase() === speciesName.toLowerCase());
+    return mockBird?.rarity || 'common';
+  };
+
+  const commonCount = sightings.filter(s => getRarity(s.species) === 'common').length;
+  const uncommonCount = sightings.filter(s => getRarity(s.species) === 'uncommon').length;
+  const rareCount = sightings.filter(s => getRarity(s.species) === 'rare').length;
+  
+  // Last 3 actual sightings
+  const recentFinds = sightings.slice(-3).reverse();
   
   const handleShare = async () => {
     try {
       await Share.share({
-        message: 'Check out my WingDex! I have discovered 6 bird species so far.',
+        message: `Check out my WingDex! I have discovered ${sightings.length} bird species so far.`,
       });
     } catch (error) {
       console.log('Error sharing:', error);
@@ -61,9 +101,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.username}>TRAINER_07</Text>
+          <Text style={styles.username}>{username.toUpperCase()}</Text>
           <Text style={styles.speciesCount}>
-            Species Discovered: <Text style={{ color: Colors.sage }}>6</Text>
+            Species Discovered: <Text style={{ color: Colors.sage }}>{sightings.length}</Text>
           </Text>
 
           <View style={styles.statsRow}>
@@ -89,24 +129,41 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.recentRow}>
-            {recentFinds.map(bird => (
-              <TouchableOpacity 
-                key={bird.id} 
-                style={styles.recentCard}
-                onPress={() => router.push({ pathname: '/bird-detail', params: { id: bird.id } })}
-                activeOpacity={0.8}
-              >
-                <LinearGradient colors={[bird.color, `${bird.color}88`, '#0A1208']} style={styles.recentImageArea}>
-                  <BirdSilhouette bird={bird} size={52} />
-                </LinearGradient>
-                <View style={styles.recentBody}>
-                  <Text style={styles.recentName} numberOfLines={1}>{bird.name}</Text>
-                  <View style={{ marginTop: 4 }}>
-                    <RarityTag rarity={bird.rarity} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {loading ? (
+              <ActivityIndicator color={Colors.sage} style={{ marginHorizontal: 'auto', marginVertical: 20 }} />
+            ) : recentFinds.length === 0 ? (
+              <Text style={{ color: "gray", textAlign: "center", width: "100%", marginVertical: 20 }}>No sightings yet!</Text>
+            ) : (
+              recentFinds.map(bird => {
+                const isRealSighting = !!bird.imageUrl && bird.imageUrl.startsWith('/');
+                return (
+                  <TouchableOpacity 
+                    key={bird.id} 
+                    style={styles.recentCard}
+                    onPress={() => router.push({ pathname: '/bird-detail', params: { id: bird.id } })}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient colors={['#88aa66', '#445533', '#0A1208']} style={styles.recentImageArea}>
+                      {isRealSighting ? (
+                        <Image 
+                          source={{ uri: `${BASE_URL}${bird.imageUrl}` }} 
+                          style={{ width: '100%', height: '100%' }} 
+                          resizeMode="cover" 
+                        />
+                      ) : (
+                        <BirdSilhouette bird={{ color: "#88aa66" }} size={52} />
+                      )}
+                    </LinearGradient>
+                    <View style={styles.recentBody}>
+                      <Text style={styles.recentName} numberOfLines={1}>{bird.species || bird.name}</Text>
+                      <View style={{ marginTop: 4 }}>
+                        <RarityTag rarity={getRarity(bird.species)} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
 
           <DexButton 

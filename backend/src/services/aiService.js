@@ -8,6 +8,12 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function identifyBird(imagePath) {
   try {
+    // If no token is provided, mock the result
+    if (!HF_TOKEN || HF_TOKEN === "missing" || HF_TOKEN === "") {
+      console.log("No HF_TOKEN found. Returning mocked AI result.");
+      return { species: "Eastern Bluebird (Mock)", confidence: 92.5 };
+    }
+
     const image = fs.readFileSync(imagePath);
 
     const res = await axios.post(HF_API, image, {

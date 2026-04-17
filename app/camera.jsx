@@ -18,7 +18,7 @@ export default function CameraScreen() {
   const cameraRef = useRef(null);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
-  const BASE_URL = "http://192.168.1.17:5000"; // CHANGE if needed
+  const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
 
   useEffect(() => {
     if (permission?.granted) {
@@ -58,9 +58,10 @@ const uploadSighting = async (imageUri) => {
 
     formData.append("image", blob, "photo.jpg");
 
-const res = await axios.post(`${BASE_URL}/sightings`, formData, {
+const res = await axios.post(`${BASE_URL}/sightings/analyze`, formData, {
   headers: {
     "Content-Type": "multipart/form-data",
+    "Authorization": `Bearer ${token}`
   },
 });
 
@@ -69,23 +70,11 @@ console.log("AI + Upload result:", res.data);
 router.push({
   pathname: "/ai-result",
   params: {
-    id: res.data.id,
     species: res.data.species,
     confidence: res.data.confidence,
     imageUrl: res.data.imageUrl,
   },
 });
-
-    console.log("Uploaded successfully:", res.data);
-
-    router.push({
-      pathname: "/ai-result",
-      params: {
-        id: res.data.species,
-        confidence: res.data.confidence,
-        imageUrl: res.data.imageUrl,
-      },
-    });
 
   } catch (err) {
     console.log("UPLOAD ERROR:", err.response?.data || err.message);
@@ -96,12 +85,7 @@ router.push({
   // CAMERA CAPTURE (mobile only)
   // -----------------------------
   const handleCapture = async () => {
-    console.log("Capture pressed");
-
-    if (Platform.OS === "web") {
-      console.log("Camera capture skipped on web");
-      return;
-    }
+    console.log("Capture pressed. Attempting to take picture...");
 
     if (capturing || !isCameraReady) return;
 

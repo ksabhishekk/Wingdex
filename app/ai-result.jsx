@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  Dimensions
+  Dimensions,
+  Image,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Polyline } from 'react-native-svg';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DexButton from '../components/DexButton';
 import BirdSilhouette from '../components/BirdSilhouette';
 import RarityTag from '../components/RarityTag';
@@ -22,8 +26,11 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function AiResultScreen() {
   const router = useRouter();
   const { id, species, confidence, imageUrl } = useLocalSearchParams();
+  const [showSuccess, setShowSuccess] = useState(false);
 
+  const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
   const confVal = parseFloat(confidence) || 0;
+  const fullImageUrl = imageUrl ? `${BASE_URL}${imageUrl}` : null;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -44,14 +51,32 @@ export default function AiResultScreen() {
   }, []);
 
   const addToWingDex = async () => {
-    router.push({
-      pathname: "/bird-detail",
-      params: {
-        id,
-        justAdded: "1",
-      },
-    });
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await axios.post(`${BASE_URL}/sightings`, 
+        { species, confidence: confVal, imageUrl }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push("/home");
+      }, 3000);
+    } catch (err) {
+      console.log("Failed to save to WingDex", err);
+      Alert.alert("Error", "Could not save sighting to WingDex.");
+    }
   };
+  
+  if (showSuccess) {
+    return (
+      <View style={[StyleSheet.absoluteFill, styles.successOverlay]}>
+        <LinearGradient colors={['#1a3a1a', '#0d1f0d']} style={StyleSheet.absoluteFill} />
+        <Text style={styles.successText}>SUCCESS!</Text>
+        <Text style={styles.successSubtext}>{species} added to your WingDex.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -62,7 +87,15 @@ export default function AiResultScreen() {
 
           <View style={styles.heroSection}>
             <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-              <BirdSilhouette bird={{ color: "#88aa66" }} size={150} />
+              {fullImageUrl ? (
+                <Image 
+                  source={{ uri: fullImageUrl }} 
+                  style={{ width: 220, height: 220, borderRadius: 110, borderWidth: 3, borderColor: Colors.sage }} 
+                  resizeMode="cover" 
+                />
+              ) : (
+                <BirdSilhouette bird={{ color: "#88aa66" }} size={150} />
+              )}
             </Animated.View>
           </View>
 
@@ -76,6 +109,20 @@ export default function AiResultScreen() {
               label="ADD TO WINGDEX"
               variant="primary"
               onPress={addToWingDex}
+              style={{ marginBottom: Spacing.md }}
+            />
+
+            <DexButton
+              label="TAKE IMAGE AGAIN"
+              variant="outline"
+              onPress={() => router.push("/camera")}
+              style={{ marginBottom: Spacing.md }}
+            />
+
+            <DexButton
+              label="CANCEL"
+              variant="outline"
+              onPress={() => router.push("/home")}
             />
           </View>
 
@@ -122,5 +169,24 @@ const styles = StyleSheet.create({
   birdName: {
     fontSize: 18,
     color: 'white'
+  },
+
+  successOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100
+  },
+  
+  successText: {
+    fontFamily: Fonts.pixel,
+    fontSize: 24,
+    color: Colors.sage,
+    marginBottom: 20
+  },
+
+  successSubtext: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: 14,
+    color: Colors.cream
   }
 });
