@@ -25,7 +25,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function AiResultScreen() {
   const router = useRouter();
-  const { id, species, confidence, imageUrl } = useLocalSearchParams();
+  const { id, species, confidence, imageUrl, lore, diet, flight, habitat, latitude, longitude } = useLocalSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
@@ -54,7 +54,17 @@ export default function AiResultScreen() {
     try {
       const token = await AsyncStorage.getItem("token");
       await axios.post(`${BASE_URL}/sightings`, 
-        { species, confidence: confVal, imageUrl }, 
+        { 
+          species, 
+          confidence: confVal, 
+          imageUrl,
+          lore,
+          diet,
+          flight,
+          habitat,
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null
+        }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

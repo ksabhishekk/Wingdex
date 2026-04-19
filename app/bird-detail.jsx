@@ -16,8 +16,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import Svg, { Circle, Path, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors, Fonts, Radii, Spacing } from '../theme';
+
+const mapCustomStyle = [
+  { "elementType": "geometry", "stylers": [{"color": "#0A1208"}] },
+  { "elementType": "labels.text.fill", "stylers": [{"color": "#8FAF7A"}] },
+  { "elementType": "labels.text.stroke", "stylers": [{"color": "#0A1208"}] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{"color": "#0D1A0D"}] }
+];
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -29,10 +36,6 @@ export default function BirdDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const animX = useRef(new Animated.Value(150)).current;
-  const animY = useRef(new Animated.Value(100)).current;
-  const scalePulse = useRef(new Animated.Value(1)).current;
 
   const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
 
@@ -56,38 +59,7 @@ export default function BirdDetailScreen() {
     };
 
     load();
-
-    // Pulse animation for the heatmap core
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scalePulse, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
-        Animated.timing(scalePulse, { toValue: 1, duration: 1000, useNativeDriver: true })
-      ])
-    ).start();
   }, [id]);
-
-  useEffect(() => {
-    // Migration Logic: Move the heatmap bubble smoothly based on the Month index
-    // Summer (index 5-7): Moves Northern (lower Y)
-    // Winter (index 0-2, 10-11): Moves Southern (higher Y)
-    const summerDist = Math.abs(6 - selectedMonth);
-    const newY = 40 + (summerDist * 15); // ranges roughly 40 -> 130
-    const newX = 120 + (Math.sin(selectedMonth) * 60); // drifting X pattern
-
-    Animated.spring(animX, { 
-      toValue: newX, 
-      tension: 40,
-      friction: 7,
-      useNativeDriver: false 
-    }).start();
-
-    Animated.spring(animY, { 
-      toValue: newY, 
-      tension: 40,
-      friction: 7,
-      useNativeDriver: false 
-    }).start();
-  }, [selectedMonth]);
 
   const performDelete = async () => {
     try {
@@ -152,23 +124,21 @@ export default function BirdDetailScreen() {
               <View style={styles.loreBox}>
                 <Text style={styles.sectionTitle}>BIODATA</Text>
                 <Text style={styles.loreText}>
-                  This {sighting.species || 'specimen'} is predominantly observed during daylight hours. 
-                  Known for erratic flight patterns during seasonal shifts, its vibrant plumage makes it 
-                  easily distinguishable against natural foliage.
+                  {sighting.lore || `This ${sighting.species || 'specimen'} is predominantly observed during daylight hours. Known for erratic flight patterns during seasonal shifts, its vibrant plumage makes it easily distinguishable against natural foliage.`}
                 </Text>
                 
                 <View style={styles.statsRow}>
                   <View style={styles.statChip}>
                     <Text style={styles.statLabel}>DIET</Text>
-                    <Text style={styles.statValue}>OMNIVORE</Text>
+                    <Text style={styles.statValue}>{sighting.diet || "OMNIVORE"}</Text>
                   </View>
                   <View style={styles.statChip}>
                     <Text style={styles.statLabel}>FLIGHT</Text>
-                    <Text style={styles.statValue}>AGILE</Text>
+                    <Text style={styles.statValue}>{sighting.flight || "AGILE"}</Text>
                   </View>
                   <View style={styles.statChip}>
                     <Text style={styles.statLabel}>HABITAT</Text>
-                    <Text style={styles.statValue}>FOREST</Text>
+                    <Text style={styles.statValue}>{sighting.habitat || "FOREST"}</Text>
                   </View>
                 </View>
               </View>
@@ -178,41 +148,29 @@ export default function BirdDetailScreen() {
                 <Text style={styles.sectionTitle}>MIGRATION HEATMAP</Text>
                 
                 <View style={styles.radarContainer}>
-                  <Svg width="100%" height="100%" viewBox="0 0 300 200" style={StyleSheet.absoluteFill}>
-                    <Defs>
-                      <RadialGradient id="pulse" cx="50%" cy="50%" rx="50%" ry="50%">
-                        <Stop offset="0%" stopColor="rgba(255, 60, 0, 0.8)" />
-                        <Stop offset="50%" stopColor="rgba(255, 100, 0, 0.4)" />
-                        <Stop offset="100%" stopColor="rgba(255, 60, 0, 0)" />
-                      </RadialGradient>
-                    </Defs>
-                    
-                    {/* Radar Grid Map Base */}
-                    <Rect width="300" height="200" fill="#0A1208" />
-                    
-                    {/* Scanlines / Geography Mocks */}
-                    <Path d="M 0 50 Q 80 40 120 80 T 250 40 T 300 90 L 300 200 L 0 200 Z" fill="#0D1A0D" stroke="#1F361F" strokeWidth="1" />
-                    <Path d="M 0 120 Q 100 100 180 150 T 300 130 " fill="none" stroke="#162916" strokeWidth="2" />
-                    
-                    {/* Concentric Radar Rings */}
-                    <Circle cx="150" cy="100" r="40" stroke="rgba(90,120,60,0.15)" strokeWidth="1" fill="none" />
-                    <Circle cx="150" cy="100" r="80" stroke="rgba(90,120,60,0.15)" strokeWidth="1" fill="none" />
-                    <Circle cx="150" cy="100" r="120" stroke="rgba(90,120,60,0.15)" strokeWidth="1" fill="none" />
-                    
-                    {/* Crosshairs */}
-                    <Path d="M 150 0 L 150 200 M 0 100 L 300 100" stroke="rgba(90,120,60,0.2)" strokeWidth="1" strokeDasharray="5,5" />
-                  </Svg>
-
-                  {/* Animated Heat Bubble */}
-                  <Animated.View style={[
-                    styles.heatBubbleContainer, 
-                    { left: animX, top: animY }
-                  ]}>
-                    <Animated.View style={[
-                      styles.heatCore, 
-                      { transform: [{ scale: scalePulse }] }
-                    ]} />
-                  </Animated.View>
+                  <MapView
+                    provider={PROVIDER_GOOGLE}
+                    customMapStyle={mapCustomStyle}
+                    style={StyleSheet.absoluteFill}
+                    scrollEnabled={false}
+                    initialRegion={{
+                      latitude: sighting.latitude || 37.78825,
+                      longitude: sighting.longitude || -122.4324,
+                      latitudeDelta: 0.05,
+                      longitudeDelta: 0.05,
+                    }}
+                  >
+                    <Circle
+                      center={{
+                        latitude: sighting.latitude || 37.78825,
+                        longitude: sighting.longitude || -122.4324,
+                      }}
+                      radius={500}
+                      fillColor="rgba(255, 60, 0, 0.3)"
+                      strokeColor="rgba(255, 120, 0, 0.8)"
+                      strokeWidth={2}
+                    />
+                  </MapView>
                 </View>
                 
                 {/* MONTH SELECTOR SCROLLER */}

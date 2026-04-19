@@ -28,4 +28,11 @@ model Sighting {
   user   User @relation(fields: [userId], references: [id])
 
   confidence Float?   // OPTIONAL (for AI later)
+  
+  lore       String?
+  diet       String?
+  flight     String?
+  habitat    String?
+  latitude   Float?
+  longitude  Float?
 }

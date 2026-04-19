@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -47,6 +48,19 @@ const uploadSighting = async (imageUri) => {
   try {
     console.log("Uploading...", imageUri);
 
+    let lat = null;
+    let lon = null;
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        let location = await Location.getCurrentPositionAsync({});
+        lat = location.coords.latitude;
+        lon = location.coords.longitude;
+      }
+    } catch (locErr) {
+      console.log("Location fetch error:", locErr);
+    }
+
     const token = await AsyncStorage.getItem("token");
 
     const formData = new FormData();
@@ -73,6 +87,12 @@ router.push({
     species: res.data.species,
     confidence: res.data.confidence,
     imageUrl: res.data.imageUrl,
+    lore: res.data.lore,
+    diet: res.data.diet,
+    flight: res.data.flight,
+    habitat: res.data.habitat,
+    latitude: lat,
+    longitude: lon
   },
 });
 

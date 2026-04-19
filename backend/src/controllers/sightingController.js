@@ -1,5 +1,5 @@
 const prisma = require("../lib/prisma");
-const { identifyBird } = require("../services/aiService");
+const { identifyBird, scrapeBirdInfo } = require("../services/aiService");
 
 // ANALYZE IMAGE (Upload file & run AI without saving to WingDex)
 exports.analyzeImage = async (req, res) => {
@@ -12,10 +12,16 @@ exports.analyzeImage = async (req, res) => {
     const aiResult = await identifyBird(imagePath);
     const imageUrl = `/uploads/${req.file.filename}`;
 
+    const bio = await scrapeBirdInfo(aiResult.species);
+
     return res.json({
       species: aiResult.species,
       imageUrl,
       confidence: aiResult.confidence,
+      lore: bio.lore,
+      diet: bio.diet,
+      flight: bio.flight,
+      habitat: bio.habitat
     });
   } catch (err) {
     console.log("ANALYZE ERROR:", err);
@@ -27,7 +33,7 @@ exports.analyzeImage = async (req, res) => {
 exports.createSighting = async (req, res) => {
   try {
     const userId = req.userId;
-    const { species, imageUrl, confidence } = req.body;
+    const { species, imageUrl, confidence, lore, diet, flight, habitat, latitude, longitude } = req.body;
 
     if (!species || !imageUrl) {
       return res.status(400).json({ error: "Missing sighting metadata" });
@@ -38,6 +44,12 @@ exports.createSighting = async (req, res) => {
         species,
         imageUrl,
         confidence: parseFloat(confidence) || 0,
+        lore,
+        diet,
+        flight,
+        habitat,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
         userId: parseInt(userId),
       },
     });
@@ -72,6 +84,13 @@ exports.getSightings = async (req, res) => {
         species: s.species,
         imageUrl: s.imageUrl,
         timestamp: s.timestamp,
+        confidence: s.confidence,
+        lore: s.lore,
+        diet: s.diet,
+        flight: s.flight,
+        habitat: s.habitat,
+        latitude: s.latitude,
+        longitude: s.longitude,
       }))
     );
 
