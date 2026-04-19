@@ -12,6 +12,15 @@ exports.analyzeImage = async (req, res) => {
     const aiResult = await identifyBird(imagePath);
     const imageUrl = `/uploads/${req.file.filename}`;
 
+    // ── NOT A BIRD CHECK ──────────────────────────────────────────────────────
+    if (aiResult.species === "NOT_A_BIRD") {
+      return res.status(422).json({
+        error: "NOT_A_BIRD",
+        message: aiResult.reason || "No bird detected. Please photograph a bird and try again.",
+      });
+    }
+
+    // Scrape Wikipedia for bio data
     const bio = await scrapeBirdInfo(aiResult.species);
 
     return res.json({
@@ -21,13 +30,14 @@ exports.analyzeImage = async (req, res) => {
       lore: bio.lore,
       diet: bio.diet,
       flight: bio.flight,
-      habitat: bio.habitat
+      habitat: bio.habitat,
     });
   } catch (err) {
     console.log("ANALYZE ERROR:", err);
     return res.status(500).json({ error: "Server error" });
   }
 };
+
 
 // CREATE SIGHTING (Save confirmed sighting to DB)
 exports.createSighting = async (req, res) => {

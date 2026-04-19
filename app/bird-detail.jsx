@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import Map from '../components/Map';
 import { Colors, Fonts, Radii, Spacing } from '../theme';
 
 const mapCustomStyle = [
@@ -148,29 +148,20 @@ export default function BirdDetailScreen() {
                 <Text style={styles.sectionTitle}>MIGRATION HEATMAP</Text>
                 
                 <View style={styles.radarContainer}>
-                  <MapView
-                    provider={PROVIDER_GOOGLE}
+                  <Map
                     customMapStyle={mapCustomStyle}
                     style={StyleSheet.absoluteFill}
-                    scrollEnabled={false}
                     initialRegion={{
                       latitude: sighting.latitude || 37.78825,
                       longitude: sighting.longitude || -122.4324,
                       latitudeDelta: 0.05,
                       longitudeDelta: 0.05,
                     }}
-                  >
-                    <Circle
-                      center={{
-                        latitude: sighting.latitude || 37.78825,
-                        longitude: sighting.longitude || -122.4324,
-                      }}
-                      radius={500}
-                      fillColor="rgba(255, 60, 0, 0.3)"
-                      strokeColor="rgba(255, 120, 0, 0.8)"
-                      strokeWidth={2}
-                    />
-                  </MapView>
+                    circleCenter={{
+                      latitude: sighting.latitude || 37.78825,
+                      longitude: sighting.longitude || -122.4324,
+                    }}
+                  />
                 </View>
                 
                 {/* MONTH SELECTOR SCROLLER */}
