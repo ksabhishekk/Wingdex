@@ -80,21 +80,63 @@ function capitalizeWords(str) {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ─── WEB SCRAPING: WIKIPEDIA ──────────────────────────────────────────────────
+// Wikipedia requires a User-Agent header
+const WIKI_HEADERS = {
+  'User-Agent': 'Wingdex/1.0 (bird-identification-app; educational-project)',
+  'Accept': 'application/json',
+};
+
+// Step 1: Wikipedia REST summary API — handles redirects & casing automatically
+async function fetchWikipediaSummary(title) {
+  try {
+    const slug = title.trim().replace(/ /g, '_');
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`;
+    console.log(`[Wikipedia] REST lookup: ${url}`);
+    const res = await axios.get(url, { headers: WIKI_HEADERS, timeout: 8000 });
+    const text = (res.data.extract || '').replace(/\s+/g, ' ').trim();
+    console.log(`[Wikipedia] REST result for "${title}": ${text.substring(0, 80)}...`);
+    return text.length >= 20 ? text : null;
+  } catch (err) {
+    if (err.response?.status === 404) return null; // article doesn't exist
+    console.error(`[Wikipedia] REST error for "${title}":`, err.message);
+    return null;
+  }
+}
+
+// Step 2: MediaWiki search API — finds best matching article title, then fetches it
+async function searchWikipediaExtract(query) {
+  try {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + ' bird')}&srlimit=1&format=json`;
+    console.log(`[Wikipedia] Searching for: "${query} bird"`);
+    const searchRes = await axios.get(searchUrl, { headers: WIKI_HEADERS, timeout: 8000 });
+    const hits = searchRes.data?.query?.search;
+    if (!hits || hits.length === 0) {
+      console.log(`[Wikipedia] No search results for "${query}"`);
+      return null;
+    }
+    const bestTitle = hits[0].title;
+    console.log(`[Wikipedia] Search found article: "${bestTitle}"`);
+    return await fetchWikipediaSummary(bestTitle);
+  } catch (err) {
+    console.error(`[Wikipedia] Search error:`, err.message);
+    return null;
+  }
+}
+
+
 async function scrapeBirdInfo(species) {
   try {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(species)}&format=json&redirects=1`;
-    const res = await axios.get(url, { timeout: 8000 });
-    const pages = res.data.query.pages;
-    const pageId = Object.keys(pages)[0];
-
-    if (pageId === '-1') {
-      console.log(`[Wikipedia] No page for "${species}", using fallback.`);
-      return fallbackBio(species);
+    // Try REST summary API first (most reliable), then full-text search fallback
+    let rawText = await fetchWikipediaSummary(species);
+    if (!rawText) {
+      rawText = await searchWikipediaExtract(species);
     }
 
-    const rawText = (pages[pageId].extract || '').replace(/\s+/g, ' ').trim();
-    if (!rawText || rawText.length < 20) return fallbackBio(species);
+
+    if (!rawText) {
+      console.log(`[Wikipedia] No article found for "${species}", using generic fallback.`);
+      return fallbackBio(species);
+    }
 
     const searchText = rawText.substring(0, 2000).toLowerCase();
     const lore = rawText.substring(0, 350).trim() + '...';
