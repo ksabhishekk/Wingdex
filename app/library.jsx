@@ -14,6 +14,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sortMode, setSortMode] = useState('newest'); // 'newest', 'oldest', 'rarest', 'common'
 
   const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
 
@@ -43,8 +44,25 @@ export default function LibraryScreen() {
     }, [])
   );
 
-  const leftCol = sightings.filter((_, i) => i % 2 === 0);
-  const rightCol = sightings.filter((_, i) => i % 2 !== 0);
+  const sortedSightings = [...sightings].sort((a, b) => {
+    if (sortMode === 'newest') {
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    } else if (sortMode === 'oldest') {
+      return new Date(a.timestamp) - new Date(b.timestamp);
+    } else if (sortMode === 'rarest' || sortMode === 'common') {
+      const rarityVal = (r) => {
+        if (r === 'rare') return 3;
+        if (r === 'uncommon') return 2;
+        return 1; // common
+      };
+      const diff = rarityVal(b.rarity) - rarityVal(a.rarity);
+      return sortMode === 'rarest' ? diff : -diff;
+    }
+    return 0;
+  });
+
+  const leftCol = sortedSightings.filter((_, i) => i % 2 === 0);
+  const rightCol = sortedSightings.filter((_, i) => i % 2 !== 0);
   
   const heights = [250, 200, 220, 260, 210, 230]; 
 
@@ -91,6 +109,22 @@ export default function LibraryScreen() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <Text style={styles.title}>YOUR WINGDEX</Text>
 
+        <View style={styles.sortContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortScroll}>
+             {['newest', 'oldest', 'rarest', 'common'].map(mode => (
+               <TouchableOpacity 
+                 key={mode} 
+                 style={[styles.sortChip, sortMode === mode && styles.sortChipActive]}
+                 onPress={() => setSortMode(mode)}
+               >
+                 <Text style={[styles.sortText, sortMode === mode && styles.sortTextActive]}>
+                   {mode.toUpperCase()}
+                 </Text>
+               </TouchableOpacity>
+             ))}
+          </ScrollView>
+        </View>
+
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {loading ? (
              <ActivityIndicator color={Colors.sage} style={{ marginTop: 40 }} />
@@ -125,8 +159,36 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.pixel,
     color: Colors.cream,
     fontSize: 18,
-    padding: Spacing.md,
-    marginTop: Spacing.sm
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm
+  },
+  sortContainer: {
+    marginBottom: Spacing.md
+  },
+  sortScroll: {
+    paddingHorizontal: Spacing.md
+  },
+  sortChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(20,35,16,0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(90,120,60,0.3)',
+    marginRight: 8
+  },
+  sortChipActive: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage
+  },
+  sortText: {
+    fontFamily: Fonts.pixel,
+    fontSize: 8,
+    color: Colors.mutedGreen
+  },
+  sortTextActive: {
+    color: '#0A1208'
   },
   scrollContent: {
     paddingHorizontal: Spacing.md,

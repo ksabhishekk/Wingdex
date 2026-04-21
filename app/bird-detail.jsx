@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   scrollContainer: {
-    paddingBottom: 60
+    paddingBottom: 20
   },
   errorText: {
     color: Colors.sage,
@@ -400,11 +400,11 @@ const styles = StyleSheet.create({
   },
   radarSection: {
     marginHorizontal: Spacing.md,
-    marginBottom: 40
+    marginBottom: 0
   },
   radarContainer: {
     width: '100%',
-    height: 200,
+    height: 450,
     backgroundColor: '#0A1208',
     borderRadius: Radii.md,
     overflow: 'hidden',
