@@ -79,6 +79,7 @@ export default function CameraScreen() {
           diet: res.data.diet,
           flight: res.data.flight,
           habitat: res.data.habitat,
+          rarity: res.data.rarity,
           latitude: lat,
           longitude: lon,
         },

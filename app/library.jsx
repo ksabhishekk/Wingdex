@@ -77,7 +77,7 @@ export default function LibraryScreen() {
         <View style={styles.cardBody}>
           <Text style={styles.cardName} numberOfLines={1}>{bird.name || bird.species}</Text>
           <View style={{ marginTop: 4 }}>
-            <RarityTag rarity={bird.rarity || 'Common'} />
+            <RarityTag rarity={bird.rarity || 'common'} />
           </View>
         </View>
       </TouchableOpacity>

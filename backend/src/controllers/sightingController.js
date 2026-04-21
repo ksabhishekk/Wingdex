@@ -31,6 +31,7 @@ exports.analyzeImage = async (req, res) => {
       diet: bio.diet,
       flight: bio.flight,
       habitat: bio.habitat,
+      rarity: bio.rarity,
     });
   } catch (err) {
     console.log("ANALYZE ERROR:", err);
@@ -43,7 +44,7 @@ exports.analyzeImage = async (req, res) => {
 exports.createSighting = async (req, res) => {
   try {
     const userId = req.userId;
-    const { species, imageUrl, confidence, lore, diet, flight, habitat, latitude, longitude } = req.body;
+    const { species, imageUrl, confidence, lore, diet, flight, habitat, rarity, latitude, longitude } = req.body;
 
     if (!species || !imageUrl) {
       return res.status(400).json({ error: "Missing sighting metadata" });
@@ -58,6 +59,7 @@ exports.createSighting = async (req, res) => {
         diet,
         flight,
         habitat,
+        rarity: rarity || 'common',
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         userId: parseInt(userId),
@@ -99,6 +101,7 @@ exports.getSightings = async (req, res) => {
         diet: s.diet,
         flight: s.flight,
         habitat: s.habitat,
+        rarity: s.rarity || 'common',
         latitude: s.latitude,
         longitude: s.longitude,
       }))

@@ -46,15 +46,13 @@ export default function ProfileScreen() {
     }, [])
   );
   
-  const getRarity = (speciesName) => {
-    if (!speciesName) return 'common';
-    const mockBird = BIRDS.find(b => b.name.toLowerCase() === speciesName.toLowerCase());
-    return mockBird?.rarity || 'common';
+  const getRarity = (bird) => {
+    return bird?.rarity || 'common';
   };
 
-  const commonCount = sightings.filter(s => getRarity(s.species) === 'common').length;
-  const uncommonCount = sightings.filter(s => getRarity(s.species) === 'uncommon').length;
-  const rareCount = sightings.filter(s => getRarity(s.species) === 'rare').length;
+  const commonCount = sightings.filter(s => getRarity(s) === 'common').length;
+  const uncommonCount = sightings.filter(s => getRarity(s) === 'uncommon').length;
+  const rareCount = sightings.filter(s => getRarity(s) === 'rare').length;
   
   // Last 3 actual sightings
   const recentFinds = sightings.slice(-3).reverse();
@@ -157,7 +155,7 @@ export default function ProfileScreen() {
                     <View style={styles.recentBody}>
                       <Text style={styles.recentName} numberOfLines={1}>{bird.species || bird.name}</Text>
                       <View style={{ marginTop: 4 }}>
-                        <RarityTag rarity={getRarity(bird.species)} />
+                        <RarityTag rarity={getRarity(bird)} />
                       </View>
                     </View>
                   </TouchableOpacity>

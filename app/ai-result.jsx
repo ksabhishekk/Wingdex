@@ -25,7 +25,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function AiResultScreen() {
   const router = useRouter();
-  const { id, species, confidence, imageUrl, lore, diet, flight, habitat, latitude, longitude } = useLocalSearchParams();
+  const { id, species, confidence, imageUrl, lore, diet, flight, habitat, rarity, latitude, longitude } = useLocalSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
@@ -62,6 +62,7 @@ export default function AiResultScreen() {
           diet,
           flight,
           habitat,
+          rarity: rarity || 'common',
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null
         }, 
@@ -111,9 +112,12 @@ export default function AiResultScreen() {
 
           <View style={styles.detailsSection}>
             <Text style={styles.birdName}>{species}</Text>
-            <Text style={{ color: "gray" }}>
-              Confidence: {confVal.toFixed(1)}%
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ color: "gray", marginRight: 10 }}>
+                Confidence: {confVal.toFixed(1)}%
+              </Text>
+              <RarityTag rarity={rarity || 'common'} />
+            </View>
 
             <DexButton
               label="ADD TO WINGDEX"

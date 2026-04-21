@@ -103,6 +103,27 @@ async function fetchWikipediaSummary(title) {
   }
 }
 
+// Fetch categories to get precise IUCN Red List status
+async function fetchWikipediaCategories(title) {
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&prop=categories&titles=${encodeURIComponent(title)}&redirects=1&cllimit=500&format=json`;
+    const res = await axios.get(url, { headers: WIKI_HEADERS, timeout: 8000 });
+    const pages = res.data?.query?.pages;
+    const categories = [];
+    if (pages) {
+      for (const pageId in pages) {
+        if (pages[pageId].categories) {
+          pages[pageId].categories.forEach(c => categories.push(c.title.toLowerCase()));
+        }
+      }
+    }
+    return categories;
+  } catch (err) {
+    console.error(`[Wikipedia] Categories error for "${title}":`, err.message);
+    return [];
+  }
+}
+
 // Step 2: MediaWiki search API — finds best matching article title, then fetches it
 async function searchWikipediaExtract(query) {
   try {
@@ -128,8 +149,13 @@ async function scrapeBirdInfo(species) {
   try {
     // Try REST summary API first (most reliable), then full-text search fallback
     let rawText = await fetchWikipediaSummary(species);
+    let categories = [];
+    
     if (!rawText) {
       rawText = await searchWikipediaExtract(species);
+      if (rawText) categories = await fetchWikipediaCategories(species);
+    } else {
+      categories = await fetchWikipediaCategories(species);
     }
 
 
@@ -164,8 +190,65 @@ async function scrapeBirdInfo(species) {
     else if (searchText.includes('mountain') || searchText.includes('alpine') || searchText.includes('highland')) habitat = 'HIGHLAND';
     else if (searchText.includes('tropical') || searchText.includes('rainforest') || searchText.includes('jungle')) habitat = 'TROPICAL';
 
-    console.log(`[Wikipedia] "${species}" → diet=${diet}, flight=${flight}, habitat=${habitat}`);
-    return { lore, diet, flight, habitat };
+    // ── RARITY DETECTION ───────────────────────────────────────────────────────
+    // Priority 1: IUCN Red List Category
+    let rarity = null;
+    if (categories.some(c => c.includes('extinct') || c.includes('critically endangered') || c.includes('endangered') || c.includes('vulnerable'))) {
+      rarity = 'rare';
+    } else if (categories.some(c => c.includes('near threatened'))) {
+      rarity = 'uncommon';
+    } else if (categories.some(c => c.includes('least concern'))) {
+      rarity = 'common';
+    }
+
+    // Priority 2: IUCN Red List status in text / General abundance language
+    if (!rarity) {
+      rarity = 'common'; // default
+      if (
+        searchText.includes('critically endangered') ||
+        searchText.includes('critically endangered (cr)') ||
+        searchText.includes('iucn: cr')
+      ) {
+        rarity = 'rare';
+      } else if (
+        searchText.includes('endangered') ||
+        searchText.includes('iucn: en') ||
+        searchText.includes('vulnerable') ||
+        searchText.includes('iucn: vu') ||
+        searchText.includes('rare species') ||
+        searchText.includes('rarely seen') ||
+        searchText.includes('seldom seen') ||
+        searchText.includes('restricted range') ||
+        searchText.includes('highly localised') ||
+        searchText.includes('highly localized')
+      ) {
+        rarity = 'rare';
+      } else if (
+        searchText.includes('near threatened') ||
+        searchText.includes('iucn: nt') ||
+        searchText.includes('uncommon') ||
+        searchText.includes('locally uncommon') ||
+        searchText.includes('patchily distributed') ||
+        searchText.includes('scarce') ||
+        searchText.includes('declining')
+      ) {
+        rarity = 'uncommon';
+      } else if (
+        searchText.includes('least concern') ||
+        searchText.includes('iucn: lc') ||
+        searchText.includes('widespread') ||
+        searchText.includes('abundant') ||
+        searchText.includes('very common') ||
+        searchText.includes('commonly found') ||
+        searchText.includes('commonly seen') ||
+        searchText.includes('one of the most common')
+      ) {
+        rarity = 'common';
+      }
+    }
+
+    console.log(`[Wikipedia] "${species}" → diet=${diet}, flight=${flight}, habitat=${habitat}, rarity=${rarity}`);
+    return { lore, diet, flight, habitat, rarity };
 
   } catch (err) {
     console.error('[Wikipedia] SCRAPE ERROR:', err.message);
@@ -179,6 +262,7 @@ function fallbackBio(species) {
     diet: 'OMNIVORE',
     flight: 'AGILE',
     habitat: 'FOREST',
+    rarity: 'common',
   };
 }
 
