@@ -7,10 +7,14 @@ const {
   getSightings,
   analyzeImage,
   deleteSighting,
+  getHeatmapData,
 } = require("../controllers/sightingController");
 
 // ANALYZE IMAGE (Uploads and gets AI classification, but no DB save)
 router.post("/analyze", auth, upload.single("image"), analyzeImage);
+
+// GET HEATMAP DATA
+router.get("/heatmap", auth, getHeatmapData);
 
 // CREATE SIGHTING (Officially save to DB)
 router.post("/", auth, createSighting);

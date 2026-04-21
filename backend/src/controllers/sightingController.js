@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
 const { identifyBird, scrapeBirdInfo } = require("../services/aiService");
+const axios = require("axios");
 
 // ANALYZE IMAGE (Upload file & run AI without saving to WingDex)
 exports.analyzeImage = async (req, res) => {
@@ -136,5 +137,39 @@ exports.deleteSighting = async (req, res) => {
   } catch (err) {
     console.log("DELETE ERROR:", err);
     return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// GET HEATMAP DATA
+exports.getHeatmapData = async (req, res) => {
+  try {
+    const { species, month } = req.query;
+    if (!species || !month) {
+      return res.status(400).json({ error: "Missing species or month" });
+    }
+
+    const url = `https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(species)}&month=${month}&per_page=50&has[]=geo&quality_grade=research`;
+    const inatRes = await axios.get(url, { headers: { 'User-Agent': 'WingdexApp/1.0' }, timeout: 8000 });
+    
+    if (!inatRes.data || !inatRes.data.results) {
+      return res.json([]);
+    }
+
+    const points = inatRes.data.results.map(obs => {
+      if (!obs.location) return null;
+      const [lat, lng] = obs.location.split(',');
+      return { 
+        latitude: parseFloat(lat), 
+        longitude: parseFloat(lng),
+        id: obs.id
+      };
+    }).filter(Boolean);
+
+    return res.json(points);
+
+  } catch (err) {
+    console.log("HEATMAP ERROR:", err.message);
+    // If it's a 404 or something, just return empty array
+    return res.json([]);
   }
 };

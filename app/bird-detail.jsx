@@ -36,6 +36,11 @@ export default function BirdDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  const [heatmapPoints, setHeatmapPoints] = useState([]);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapMessage, setHeatmapMessage] = useState("");
+  const [mapRegion, setMapRegion] = useState(null);
 
   const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.12:5000";
 
@@ -60,6 +65,62 @@ export default function BirdDetailScreen() {
 
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!sighting || !sighting.species) return;
+
+    const fetchHeatmap = async () => {
+      setHeatmapLoading(true);
+      setHeatmapMessage("");
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const monthNum = selectedMonth + 1;
+        const res = await axios.get(`${BASE_URL}/sightings/heatmap?species=${encodeURIComponent(sighting.species)}&month=${monthNum}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const points = res.data || [];
+        setHeatmapPoints(points);
+
+        if (points.length === 0) {
+          const lore = (sighting.lore || "").toLowerCase();
+          if (lore.includes("resident") || lore.includes("non-migratory") || lore.includes("sedentary") || lore.includes("year-round")) {
+             setHeatmapMessage("Species is predominantly non-migratory (resident).");
+          } else {
+             setHeatmapMessage("No sighting data available for this month.");
+          }
+          setMapRegion({
+            latitude: sighting.latitude || 37.78825,
+            longitude: sighting.longitude || -122.4324,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          });
+        } else {
+          const lats = points.map(p => p.latitude);
+          const lngs = points.map(p => p.longitude);
+          const minLat = Math.min(...lats);
+          const maxLat = Math.max(...lats);
+          const minLng = Math.min(...lngs);
+          const maxLng = Math.max(...lngs);
+
+          setMapRegion({
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLng + maxLng) / 2,
+            latitudeDelta: Math.max(maxLat - minLat + 2, 2),
+            longitudeDelta: Math.max(maxLng - minLng + 2, 2),
+          });
+        }
+      } catch (err) {
+        console.log("HEATMAP ERROR:", err.message);
+        setHeatmapPoints([]);
+        setHeatmapMessage("Could not load heatmap data.");
+      } finally {
+        setHeatmapLoading(false);
+      }
+    };
+
+    fetchHeatmap();
+  }, [sighting, selectedMonth]);
 
   const performDelete = async () => {
     try {
@@ -151,6 +212,12 @@ export default function BirdDetailScreen() {
                   <Map
                     customMapStyle={mapCustomStyle}
                     style={StyleSheet.absoluteFill}
+                    region={mapRegion || {
+                      latitude: sighting.latitude || 37.78825,
+                      longitude: sighting.longitude || -122.4324,
+                      latitudeDelta: 0.05,
+                      longitudeDelta: 0.05,
+                    }}
                     initialRegion={{
                       latitude: sighting.latitude || 37.78825,
                       longitude: sighting.longitude || -122.4324,
@@ -161,7 +228,19 @@ export default function BirdDetailScreen() {
                       latitude: sighting.latitude || 37.78825,
                       longitude: sighting.longitude || -122.4324,
                     }}
+                    points={heatmapPoints}
                   />
+                  
+                  {heatmapLoading && (
+                    <View style={styles.radarOverlay}>
+                      <ActivityIndicator color={Colors.sage} />
+                    </View>
+                  )}
+                  {!heatmapLoading && heatmapPoints.length === 0 && heatmapMessage ? (
+                    <View style={styles.radarOverlay}>
+                      <Text style={styles.radarOverlayText}>{heatmapMessage}</Text>
+                    </View>
+                  ) : null}
                 </View>
                 
                 {/* MONTH SELECTOR SCROLLER */}
@@ -332,6 +411,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(90,120,60,0.3)',
     marginBottom: Spacing.md
+  },
+  radarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,18,8,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md
+  },
+  radarOverlayText: {
+    fontFamily: Fonts.pixel,
+    fontSize: 8,
+    color: Colors.mutedGreen,
+    textAlign: 'center',
+    lineHeight: 14
   },
   heatBubbleContainer: {
     position: 'absolute',
