@@ -55,7 +55,9 @@ async function identifyBird(imagePath) {
       ? capitalizeWords(taxon.preferred_common_name)
       : taxon.name;
 
-    const confidence = Math.min(Math.round((top.combined_score || 0) * 100), 99);
+    // Keep the decimal precision up to 1 decimal place, max out at 99.9%
+    const rawScore = (top.combined_score || 0) * 100;
+    const confidence = Math.min(Math.round(rawScore * 10) / 10, 99.9);
 
     return { species, confidence };
 
@@ -70,6 +72,10 @@ async function identifyBird(imagePath) {
         confidence: 0,
         reason: 'iNaturalist token expired or invalid. Go to inaturalist.org/users/api_token to get a fresh token.',
       };
+    }
+
+    if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' || err.message.includes('Network Error') || err.message.includes('getaddrinfo')) {
+      return { species: 'OFFLINE', confidence: 0, reason: `No internet connection on server: ${msg}` };
     }
 
     return { species: 'NOT_A_BIRD', confidence: 0, reason: `Vision API error (${status}): ${msg}` };

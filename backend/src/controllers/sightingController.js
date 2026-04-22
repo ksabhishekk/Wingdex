@@ -21,6 +21,13 @@ exports.analyzeImage = async (req, res) => {
       });
     }
 
+    if (aiResult.species === "OFFLINE") {
+      return res.status(503).json({
+        error: "OFFLINE",
+        message: aiResult.reason || "The backend server is currently offline and cannot reach AI services.",
+      });
+    }
+
     // Scrape Wikipedia for bio data
     const bio = await scrapeBirdInfo(aiResult.species);
 
@@ -150,7 +157,7 @@ exports.getHeatmapData = async (req, res) => {
 
     const url = `https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(species)}&month=${month}&per_page=50&has[]=geo&quality_grade=research`;
     const inatRes = await axios.get(url, { headers: { 'User-Agent': 'WingdexApp/1.0' }, timeout: 8000 });
-    
+
     if (!inatRes.data || !inatRes.data.results) {
       return res.json([]);
     }
@@ -158,8 +165,8 @@ exports.getHeatmapData = async (req, res) => {
     const points = inatRes.data.results.map(obs => {
       if (!obs.location) return null;
       const [lat, lng] = obs.location.split(',');
-      return { 
-        latitude: parseFloat(lat), 
+      return {
+        latitude: parseFloat(lat),
         longitude: parseFloat(lng),
         id: obs.id
       };
