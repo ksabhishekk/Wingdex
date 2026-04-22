@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import * as Network from 'expo-network';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +18,7 @@ export default function CameraScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [notBirdError, setNotBirdError] = useState(null);
+  const [offlineSuccess, setOfflineSuccess] = useState(false);
 
   const cameraRef = useRef(null);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -34,22 +37,64 @@ export default function CameraScreen() {
     }
   }, [permission]);
 
+  const saveToQueue = async (imageUri, lat, lon) => {
+    console.log('Queueing sighting');
+    const filename = imageUri.split('/').pop() || `offline_${Date.now()}.jpg`;
+    const newPath = FileSystem.documentDirectory + filename;
+    try {
+      await FileSystem.copyAsync({ from: imageUri, to: newPath });
+    } catch(e) {
+      console.log('File copy error:', e);
+    }
+    
+    const offlineData = {
+      id: `offline_${Date.now()}`,
+      uri: newPath,
+      latitude: lat,
+      longitude: lon,
+      timestamp: new Date().toISOString()
+    };
+    
+    const existingStr = await AsyncStorage.getItem('@offline_queue');
+    const existingQueue = existingStr ? JSON.parse(existingStr) : [];
+    await AsyncStorage.setItem('@offline_queue', JSON.stringify([offlineData, ...existingQueue]));
+    
+    setScanning(false);
+    setOfflineSuccess(true);
+    setTimeout(() => {
+      setOfflineSuccess(false);
+      router.push('/library');
+    }, 2000);
+  };
+
   const uploadSighting = async (imageUri) => {
     setScanning(true);
+    let lat = null;
+    let lon = null;
     try {
       console.log('Uploading...', imageUri);
 
-      let lat = null;
-      let lon = null;
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const location = await Location.getCurrentPositionAsync({});
+          // Add a timeout to prevent hanging on some devices when offline
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            timeout: 5000,
+          });
           lat = location.coords.latitude;
           lon = location.coords.longitude;
         }
       } catch (locErr) {
-        console.log('Location fetch error:', locErr);
+        console.log('Location fetch error or timeout:', locErr);
+      }
+
+      const networkState = await Network.getNetworkStateAsync();
+      // isInternetReachable can be null on some platforms, we should consider it offline if false, but if null we might want to try anyway or assume offline.
+      // Actually, if it's exactly false, we are offline. If it's null, we'll try and rely on axios timeout.
+      if (networkState.isConnected === false || networkState.isInternetReachable === false) {
+        await saveToQueue(imageUri, lat, lon);
+        return;
       }
 
       const token = await AsyncStorage.getItem('token');
@@ -65,6 +110,7 @@ export default function CameraScreen() {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
         },
+        timeout: 10000, // 10 second timeout for offline fallback
       });
 
       console.log('AI result:', res.data);
@@ -87,6 +133,13 @@ export default function CameraScreen() {
     } catch (err) {
       const errData = err.response?.data;
       console.log('UPLOAD ERROR:', errData || err.message);
+      
+      // Axios timeouts throw an error with code ECONNABORTED
+      if (errData?.error === 'OFFLINE' || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
+        await saveToQueue(imageUri, lat, lon);
+        return;
+      }
+      
       if (errData?.error === 'NOT_A_BIRD') {
         setNotBirdError(errData.message || 'No bird detected. Please try again with a bird photo.');
       } else {
@@ -94,7 +147,9 @@ export default function CameraScreen() {
       }
 
     } finally {
-      setScanning(false);
+      if (!offlineSuccess) {
+        setScanning(false);
+      }
     }
   };
 
@@ -187,6 +242,17 @@ export default function CameraScreen() {
             <ActivityIndicator size="large" color="#8FAF7A" />
             <Text style={styles.scanningTitle}>ANALYZING...</Text>
             <Text style={styles.scanningSubtext}>Identifying species via AI</Text>
+          </View>
+        </View>
+      )}
+
+      {/* OFFLINE SUCCESS OVERLAY */}
+      {offlineSuccess && (
+        <View style={styles.scanningOverlay}>
+          <View style={styles.scanningBox}>
+            <Text style={{ fontSize: 32 }}>📶</Text>
+            <Text style={styles.scanningTitle}>SAVED OFFLINE</Text>
+            <Text style={styles.scanningSubtext}>Will be analyzed when connected</Text>
           </View>
         </View>
       )}
