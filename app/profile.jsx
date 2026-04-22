@@ -9,6 +9,8 @@ import Svg, { Circle, Ellipse } from 'react-native-svg';
 import DexButton from '../components/DexButton';
 import BirdSilhouette from '../components/BirdSilhouette';
 import RarityTag from '../components/RarityTag';
+import HabitatChart from '../components/HabitatChart';
+import StreakCard from '../components/StreakCard';
 import { BIRDS } from '../data/birds';
 import { Colors, Fonts, Radii, Spacing } from '../theme';
 
@@ -164,12 +166,21 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          {/* ── ANALYTICS SECTION ───────────────────────────────────────── */}
+          <View style={styles.analyticsHeader}>
+            <Text style={styles.analyticsLabel}>ANALYTICS</Text>
+            <View style={styles.analyticsDivider} />
+          </View>
+
+          <HabitatChart sightings={sightings} />
+          <StreakCard sightings={sightings} />
+
           <DexButton 
             label="SHARE YOUR PROFILE" 
             variant="outline" 
             onPress={handleShare} 
             fullWidth 
-            style={{ marginTop: Spacing.xl }}
+            style={{ marginTop: Spacing.sm }}
           />
 
         </View>
@@ -314,5 +325,22 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodyMedium,
     fontSize: 9,
     color: Colors.cream
-  }
+  },
+  analyticsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: Spacing.xl,
+    marginBottom: 14,
+  },
+  analyticsLabel: {
+    fontFamily: Fonts.pixel,
+    fontSize: 7,
+    color: Colors.sage,
+  },
+  analyticsDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(90,120,60,0.2)',
+  },
 });

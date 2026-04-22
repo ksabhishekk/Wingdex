@@ -22,7 +22,7 @@
     "expo-image-picker": "~55.0.18",
     "expo-linear-gradient": "~55.0.13",
     "expo-location": "^55.1.8",
-    "expo-network": "^55.0.13",
+    "expo-network": "~55.0.13",
     "expo-router": "~55.0.12",
     "expo-splash-screen": "~55.0.18",
     "expo-status-bar": "~55.0.5",
