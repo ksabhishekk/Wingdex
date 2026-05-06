@@ -84,9 +84,6 @@ npx expo start
 
 Scan the QR code shown in your terminal using the Expo Go app on your mobile device to open Wingdex!
 
-## 📸 Screenshots
-
-*(You can add screenshots of your mobile application here to showcase the UI)*
 
 ## 🤝 Contributing
 
