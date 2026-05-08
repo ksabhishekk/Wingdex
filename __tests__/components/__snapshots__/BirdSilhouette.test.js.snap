@@ -1,0 +1,285 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`BirdSilhouette matches snapshot for bird 001 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "height": 80,
+      "justifyContent": "center",
+      "opacity": 0.7,
+      "width": 80,
+    }
+  }
+>
+  <RNSVGSvgView
+    align="xMidYMid"
+    bbHeight={80}
+    bbWidth={80}
+    focusable={false}
+    height={80}
+    meetOrSlice={0}
+    minX={0}
+    minY={0}
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderWidth": 0,
+        },
+        {
+          "flex": 0,
+          "height": 80,
+          "width": 80,
+        },
+      ]
+    }
+    vbHeight={80}
+    vbWidth={80}
+    width={80}
+  >
+    <RNSVGGroup
+      fill={
+        {
+          "payload": 4278190080,
+          "type": 0,
+        }
+      }
+    >
+      <RNSVGEllipse
+        cx="40"
+        cy="50"
+        fill={
+          {
+            "payload": 3439263744,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        rx="20"
+        ry="25"
+      />
+      <RNSVGCircle
+        cx="45"
+        cy="25"
+        fill={
+          {
+            "payload": 2583625728,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        r="12"
+      />
+      <RNSVGPath
+        d="M45 25 L58 35 L40 50 Z"
+        fill={
+          {
+            "payload": 3154051072,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+      <RNSVGPath
+        d="M30 65 L20 80 L40 70 Z"
+        fill={
+          {
+            "payload": 2583625728,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+      <RNSVGCircle
+        cx="48"
+        cy="23"
+        fill={
+          {
+            "payload": 4294967295,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        r="2"
+      />
+      <RNSVGPath
+        d="M56 22 L62 25 L55 27 Z"
+        fill={
+          {
+            "payload": 1727987712,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+    </RNSVGGroup>
+  </RNSVGSvgView>
+</View>
+`;
+
+exports[`BirdSilhouette renders bird 001 when no bird is provided 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "height": 80,
+      "justifyContent": "center",
+      "opacity": 0.7,
+      "width": 80,
+    }
+  }
+>
+  <RNSVGSvgView
+    align="xMidYMid"
+    bbHeight={80}
+    bbWidth={80}
+    focusable={false}
+    height={80}
+    meetOrSlice={0}
+    minX={0}
+    minY={0}
+    style={
+      [
+        {
+          "backgroundColor": "transparent",
+          "borderWidth": 0,
+        },
+        {
+          "flex": 0,
+          "height": 80,
+          "width": 80,
+        },
+      ]
+    }
+    vbHeight={80}
+    vbWidth={80}
+    width={80}
+  >
+    <RNSVGGroup
+      fill={
+        {
+          "payload": 4278190080,
+          "type": 0,
+        }
+      }
+    >
+      <RNSVGEllipse
+        cx="40"
+        cy="50"
+        fill={
+          {
+            "payload": 3433068608,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        rx="20"
+        ry="25"
+      />
+      <RNSVGCircle
+        cx="45"
+        cy="25"
+        fill={
+          {
+            "payload": 2577430592,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        r="12"
+      />
+      <RNSVGPath
+        d="M45 25 L58 35 L40 50 Z"
+        fill={
+          {
+            "payload": 3147855936,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+      <RNSVGPath
+        d="M30 65 L20 80 L40 70 Z"
+        fill={
+          {
+            "payload": 2577430592,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+      <RNSVGCircle
+        cx="48"
+        cy="23"
+        fill={
+          {
+            "payload": 4294967295,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+        r="2"
+      />
+      <RNSVGPath
+        d="M56 22 L62 25 L55 27 Z"
+        fill={
+          {
+            "payload": 1721792576,
+            "type": 0,
+          }
+        }
+        propList={
+          [
+            "fill",
+          ]
+        }
+      />
+    </RNSVGGroup>
+  </RNSVGSvgView>
+</View>
+`;
